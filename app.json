@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "Schedul",
+    "slug": "Schedul",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "scheme": "Schedul",
+    "splash": {
+      "image": "./assets/splash1.jpeg",
+      "resizeMode": "cover",
+      "backgroundColor": "#ffffff",
+      "imageResizeMode": "cover",
+      "shouldResize": true
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.arthuranjos.Schedul"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.arthuranjos.Schedul"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "62163a74-b7a6-4a51-b8a3-bdbe41747042"
+      }
+    }
+  }
+}
