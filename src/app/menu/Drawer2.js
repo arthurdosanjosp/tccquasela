@@ -1,53 +1,53 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../config/firebaseConfig';
+import { signOut } from 'firebase/auth'; 
 
 const Drawer = ({ onClose }) => {
-        const router = useRouter();
-        const [values, setValues] = useState({
-          name: '',
-          publicName: '',
-          email: '',
-          senha: '',
-        });
-        const [isEditing, setIsEditing] = useState({
-        });
-        
-        useEffect(() => {
-          const fetchUserData = async () => {
-            try {
-              const user = auth.currentUser;
-              if (user) {
-                const userDocRef = doc(db, 'usuarios', user.uid); 
-                const userDoc = await getDoc(userDocRef);
-                if (userDoc.exists()) {
-                  setValues(userDoc.data());
-                }
-              }
-            } catch (error) {
-              console.error('Erro ao recuperar dados do usuário:', error);
-            }
-          };
-      
-          fetchUserData();
-        }, []);
-      
-        const toggleEdit = (field) => {
-          setIsEditing((prev) => ({
-            ...prev,
-            [field]: !prev[field],
-          }));
-        };
-      
-        const handleChange = (field, text) => {
-          setValues((prev) => ({
-            ...prev,
-            [field]: text,
-          }));
-        };
+  const router = useRouter();
+  const [values, setValues] = useState({
+    name: '',
+    publicName: '',
+    email: '',
+    senha: '',
+  });
+  const [isEditing, setIsEditing] = useState({});
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const user = auth.currentUser;
+        if (user) {
+          const userDocRef = doc(db, 'usuarios', user.uid);
+          const userDoc = await getDoc(userDocRef);
+          if (userDoc.exists()) {
+            setValues(userDoc.data());
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao recuperar dados do usuário:', error);
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
+  const toggleEdit = (field) => {
+    setIsEditing((prev) => ({
+      ...prev,
+      [field]: !prev[field],
+    }));
+  };
+
+  const handleChange = (field, text) => {
+    setValues((prev) => ({
+      ...prev,
+      [field]: text,
+    }));
+  };
 
   const handleNavigation = (path) => {
     router.push(path);
@@ -59,13 +59,23 @@ const Drawer = ({ onClose }) => {
     onClose(); // Fecha o menu ao voltar para a tela anterior
   };
 
+  // Função de logout
+  const handleLogout = async () => {
+    try {
+      await signOut(auth); // Realiza o logout
+      router.push('/cadastrar'); 
+    } catch (error) {
+      console.error('Erro ao sair:', error);
+    }
+  };
+
   return (
     <View style={styles.drawer}>
       {/* Menu de navegação com fechamento */}
       <TouchableOpacity onPress={onClose} style={styles.menuIcon}>
         <Icon name="menu" size={30} color="#000" />
       </TouchableOpacity>
-      
+
       {/* Cabeçalho com ícone de perfil */}
       <View style={styles.header}>
         <Icon name="account-circle" size={65} color="#000" />
@@ -96,13 +106,13 @@ const Drawer = ({ onClose }) => {
       {/* Itens do menu */}
       <View style={styles.items}></View>
       <View style={styles.items}>
-      <TouchableOpacity onPress={() => handleNavigation('/blocos/areadtrabalho')} style={styles.item}>
-      <Icon name="work" size={25} color="#696969" />
+        <TouchableOpacity onPress={() => handleNavigation('/blocos/areadtrabalho')} style={styles.item}>
+          <Icon name="work" size={25} color="#696969" />
           <Text style={styles.itemText}>Área de Trabalho</Text>
         </TouchableOpacity>
       </View>
       <View style={styles.items}>
-      <TouchableOpacity onPress={onClose} style={styles.item}>
+        <TouchableOpacity onPress={onClose} style={styles.item}>
           <Icon name="view-quilt" size={25} color="#696969" />
           <Text style={styles.itemText}>Meus Blocos</Text>
         </TouchableOpacity>
@@ -125,8 +135,10 @@ const Drawer = ({ onClose }) => {
           <Text style={styles.itemText}>Ajuda</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Adicionando o botão de Logout */}
       <View style={styles.items}>
-        <TouchableOpacity onPress={onClose} style={styles.item}>
+      <TouchableOpacity style={styles.item} onPress={() => router.push(handleLogout)}>
           <Icon name="exit-to-app" size={25} color="#696969" />
           <Text style={styles.itemText}>Sair</Text>
         </TouchableOpacity>
@@ -142,55 +154,48 @@ const styles = StyleSheet.create({
     left: 0,
     width: '70%',
     height: '100%',
-    backgroundColor: 'white', // Cor de fundo alterada para cinza claro
+    backgroundColor: 'white',
     paddingTop: 40,
     zIndex: 1000,
-    paddingHorizontal: 10, // Adicionado padding horizontal para dar mais espaçamento nas laterais
+    paddingHorizontal: 10,
   },
   menuIcon: {
     position: 'absolute',
     top: 10,
     left: 10,
-    zIndex: 1001, // Para garantir que o menu fique sobreposto
-    padding: 5, // Para aumentar a área clicável do ícone
+    zIndex: 1001,
+    padding: 5,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 20,
     marginLeft: 10,
-    marginTop: 40, // Adicionado para afastar do ícone de menu
+    marginTop: 40,
   },
   userInfo: {
     marginLeft: 15,
-    justifyContent: 'center', // Centralizar o texto verticalmente
+    justifyContent: 'center',
   },
-  userName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#000', // Cor preta para combinar com a imagem
-  },
-  userEmail: {
-    fontSize: 14,
-    color: '#000', // Cor preta para o email
+  infoValue: {
+    fontSize: 18,
+    color: '#000',
   },
   items: {
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0', // Linha de separação entre os itens mais discreta
-    marginBottom: 20, // Espaçamento menor entre os itens
+    borderBottomColor: '#E0E0E0',
+    marginBottom: 20,
   },
   item: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 15,
-    marginTop: 0, 
-    top: -5
   },
   itemText: {
-    marginLeft: 15, // Espaçamento aumentado entre o ícone e o texto
+    marginLeft: 15,
     fontSize: 18,
-    color: '#000', // Cor preta para o texto dos itens
+    color: '#000',
   },
 });
 

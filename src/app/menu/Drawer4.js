@@ -1,53 +1,53 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../config/firebaseConfig';
+import { signOut } from 'firebase/auth';
 
 const Drawer = ({ onClose }) => {
-        const router = useRouter();
-        const [values, setValues] = useState({
-          name: '',
-          publicName: '',
-          email: '',
-          senha: '',
-        });
-        const [isEditing, setIsEditing] = useState({
-        });
-        
-        useEffect(() => {
-          const fetchUserData = async () => {
-            try {
-              const user = auth.currentUser;
-              if (user) {
-                const userDocRef = doc(db, 'usuarios', user.uid); 
-                const userDoc = await getDoc(userDocRef);
-                if (userDoc.exists()) {
-                  setValues(userDoc.data());
-                }
-              }
-            } catch (error) {
-              console.error('Erro ao recuperar dados do usuário:', error);
-            }
-          };
-      
-          fetchUserData();
-        }, []);
-      
-        const toggleEdit = (field) => {
-          setIsEditing((prev) => ({
-            ...prev,
-            [field]: !prev[field],
-          }));
-        };
-      
-        const handleChange = (field, text) => {
-          setValues((prev) => ({
-            ...prev,
-            [field]: text,
-          }));
-        };
+  const router = useRouter();
+  const [values, setValues] = useState({
+    name: '',
+    publicName: '',
+    email: '',
+    senha: '',
+  });
+  const [isEditing, setIsEditing] = useState({});
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const user = auth.currentUser;
+        if (user) {
+          const userDocRef = doc(db, 'usuarios', user.uid);
+          const userDoc = await getDoc(userDocRef);
+          if (userDoc.exists()) {
+            setValues(userDoc.data());
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao recuperar dados do usuário:', error);
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
+  const toggleEdit = (field) => {
+    setIsEditing((prev) => ({
+      ...prev,
+      [field]: !prev[field],
+    }));
+  };
+
+  const handleChange = (field, text) => {
+    setValues((prev) => ({
+      ...prev,
+      [field]: text,
+    }));
+  };
 
   const handleNavigation = (path) => {
     router.push(path);
@@ -59,13 +59,23 @@ const Drawer = ({ onClose }) => {
     onClose(); // Fecha o menu ao voltar para a tela anterior
   };
 
+  // Função de logout
+  const handleLogout = async () => {
+    try {
+      await signOut(auth); // Realiza o logout
+      router.push('/cadastrar'); 
+    } catch (error) {
+      console.error('Erro ao sair:', error);
+    }
+  };
+
   return (
     <View style={styles.drawer}>
       {/* Menu de navegação com fechamento */}
       <TouchableOpacity onPress={onClose} style={styles.menuIcon}>
         <Icon name="menu" size={30} color="#000" />
       </TouchableOpacity>
-      
+
       {/* Cabeçalho com ícone de perfil */}
       <View style={styles.header}>
         <Icon name="account-circle" size={65} color="#000" />
@@ -96,7 +106,7 @@ const Drawer = ({ onClose }) => {
       {/* Itens do menu */}
       <View style={styles.items}></View>
       <View style={styles.items}>
-      <TouchableOpacity onPress={() => handleNavigation('/blocos/areadtrabalho')} style={styles.item}>
+        <TouchableOpacity onPress={() => handleNavigation('/blocos/areadtrabalho')} style={styles.item}>
           <Icon name="work" size={25} color="#696969" />
           <Text style={styles.itemText}>Área de Trabalho</Text>
         </TouchableOpacity>
@@ -125,8 +135,10 @@ const Drawer = ({ onClose }) => {
           <Text style={styles.itemText}>Ajuda</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Adicionando o botão de Logout */}
       <View style={styles.items}>
-        <TouchableOpacity onPress={onClose} style={styles.item}>
+      <TouchableOpacity style={styles.item} onPress={() => router.push(handleLogout)}>
           <Icon name="exit-to-app" size={25} color="#696969" />
           <Text style={styles.itemText}>Sair</Text>
         </TouchableOpacity>
@@ -165,14 +177,9 @@ const styles = StyleSheet.create({
     marginLeft: 15,
     justifyContent: 'center', // Centralizar o texto verticalmente
   },
-  userName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#000', // Cor preta para combinar com a imagem
-  },
-  userEmail: {
-    fontSize: 14,
-    color: '#000', // Cor preta para o email
+  infoValue: {
+    fontSize: 18,
+    color: '#000',
   },
   items: {
     paddingHorizontal: 20,

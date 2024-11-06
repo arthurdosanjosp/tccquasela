@@ -4,6 +4,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router'; 
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../config/firebaseConfig'; 
+import { signOut } from 'firebase/auth'; 
 
 export default function Config() {
     const router = useRouter();
@@ -39,6 +40,17 @@ export default function Config() {
     const getInitial = () => {
         return userData.name ? userData.name.charAt(0).toUpperCase() : 'U';
     };
+    
+  const handleLogout = async () => {
+    try {
+      await signOut(auth); 
+      router.push('/cadastrar'); 
+      onClose(); 
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
+    }
+  };
+
 
     return (
         <View style={styles.container}>
@@ -78,7 +90,7 @@ export default function Config() {
                     <Text style={styles.optionText}>Ajuda</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.optionItem} onPress={() => router.push('/logout')}>
+                <TouchableOpacity style={styles.optionItem} onPress={() => router.push(handleLogout)}>
                     <Icon name="logout" size={40} color="#424242" />
                     <Text style={styles.optionText}>Sair</Text>
                 </TouchableOpacity>

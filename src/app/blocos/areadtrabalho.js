@@ -475,6 +475,46 @@ export default function Areadtrabalho() {
       
             return `${day} de ${month.replace('.', '')}`;
         };
+        const filterFichasByDate = (fichas) => {
+            const today = new Date();
+            
+            return fichas.filter(ficha => {
+                const fichaDate = new Date(today.getFullYear(), today.getMonth(), today.getDate()); // Ajusta a data da ficha
+                
+                if (filterOption === 'Hoje') {
+                    return ficha.date === formatDate(today);
+                }
+                
+                if (filterOption === 'Semana') {
+                    const startOfWeek = new Date(today);
+                    startOfWeek.setDate(today.getDate() - today.getDay()); // Primeiro dia da semana
+    
+                    const endOfWeek = new Date(today);
+                    endOfWeek.setDate(today.getDate() + (6 - today.getDay())); // Último dia da semana
+    
+                    return fichaDate >= startOfWeek && fichaDate <= endOfWeek;
+                }
+                
+                if (filterOption === 'Mês') {
+                    return fichaDate.getMonth() === today.getMonth() && fichaDate.getFullYear() === today.getFullYear();
+                }
+                
+                return true; // Exibe todas as fichas se não houver filtro
+            });
+        };
+        useEffect(() => {
+            const filteredColunas = colunas.map(coluna => ({
+                ...coluna,
+                fichas: filterFichasByDate(coluna.fichas)
+            }));
+            
+            setFilteredFichas(filteredColunas);
+        }, [filterOption, colunas]);
+    
+        // Função para alterar a opção de filtro
+        const handleFilterChange = (option) => {
+            setFilterOption(option);
+        };
     
   
         const renderItem = ({ item }) => (
@@ -562,21 +602,21 @@ export default function Areadtrabalho() {
                         </TouchableOpacity>
                     </View>
                     <View style={styles.taskFilterButtons}>
-                        <TouchableOpacity style={styles.taskFilterButton}>
-                            <Text style={styles.taskFilterButtonText}>Hoje</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.taskFilterButton}>
-                            <Text style={styles.taskFilterButtonText}>Semana</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.taskFilterButton}>
-                            <Text style={styles.taskFilterButtonText}>Mês</Text>
-                        </TouchableOpacity>
+                    <TouchableOpacity style={styles.taskFilterButton} onPress={() => handleFilterChange('Hoje')}>
+                    <Text style={styles.taskFilterButtonText}>Hoje</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.taskFilterButton} onPress={() => handleFilterChange('Semana')}>
+                    <Text style={styles.taskFilterButtonText}>Semana</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.taskFilterButton} onPress={() => handleFilterChange('Mês')}>
+                    <Text style={styles.taskFilterButtonText}>Mês</Text>
+                </TouchableOpacity>
                     </View>
                     <ScrollView style={styles.scrollContainer}>
                         <View style={styles.colunasContainer}>
-                            {colunas.map((coluna, index) => (
-                                <View key={index} style={styles.tarefasContainer}>
-                                    {coluna.fichas && coluna.fichas.map((ficha, fichaIndex) => (
+                        {colunas.map((coluna, index) => (
+                        <View key={index} style={styles.tarefasContainer}>
+                            {filterFichasByDate(coluna.fichas).map((ficha, fichaIndex) => (
                                         <TouchableOpacity key={fichaIndex} style={styles.fichaContainer} onPress={() => handleOpenFichaModal(ficha)}>
                                             <View style={styles.ficha}>
                                                 <View style={styles.iconContainer}>

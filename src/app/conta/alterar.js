@@ -1,11 +1,54 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ImageBackground } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '../config/firebaseConfig'; 
 
 const SwitchAccountScreen = () => {
   const router = useRouter();
+  const [userData, setUserData] = useState({
+    name: '',
+    email: '',
+  });
+  const [profileBgColor, setProfileBgColor] = useState('#4B6D9B');
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const user = auth.currentUser;
+        if (user) {
+          const userDocRef = doc(db, 'usuarios', user.uid);
+          const userDoc = await getDoc(userDocRef);
+          if (userDoc.exists()) {
+            setUserData(userDoc.data());
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao recuperar dados do usuário:', error);
+      }
+    };
+
+    fetchUserData();
+
+    // Seleciona uma cor de fundo aleatória para o avatar
+    const colors = ['#4B6D9B', '#80C49F', '#E8CB73', '#CD6051', '#D17BC1', '#8F5EB6', '#6DCFCF', '#ED942B'];
+    setProfileBgColor(colors[Math.floor(Math.random() * colors.length)]);
+  }, []);
+
+  const getInitial = () => {
+    return userData.name ? userData.name.charAt(0).toUpperCase() : 'U';
+  };
+  const handleLogout = async () => {
+    try {
+      await signOut(auth); 
+      router.push('/cadastrar'); 
+      onClose(); 
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
+    }
+  };
 
   return (
     <ImageBackground 
@@ -26,12 +69,12 @@ const SwitchAccountScreen = () => {
 
           {/* Account Item */}
           <TouchableOpacity style={[styles.accountItem, styles.accountItemBorder]}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>H</Text>
+            <View style={[styles.avatar, { backgroundColor: profileBgColor }]}>
+              <Text style={styles.avatarText}>{getInitial()}</Text>
             </View>
             <View>
-              <Text style={styles.accountName}>Helena</Text>
-              <Text style={styles.accountEmail}>helenasilva@gmail.com</Text>
+              <Text style={styles.accountName}>{userData.name}</Text>
+              <Text style={styles.accountEmail}>{userData.email}</Text>
             </View>
           </TouchableOpacity>
 
@@ -42,7 +85,7 @@ const SwitchAccountScreen = () => {
           </TouchableOpacity>
 
           {/* Logout */}
-          <TouchableOpacity style={styles.logoutButton}>
+          <TouchableOpacity style={styles.logoutButton} onPress={() => router.push(handleLogout)}>
             <Text style={styles.logoutText}>Sair</Text>
           </TouchableOpacity>
         </View>
@@ -84,13 +127,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'gray',
     marginVertical: 20,
-    textAlign: 'left', // Adicionado para alinhar à esquerda
+    textAlign: 'left',
   },
   accountItem: {
     flexDirection: 'row',
     alignItems: 'center',
     marginVertical: 15,
-    paddingBottom: 10, // Adicionado para dar espaço para a borda
+    paddingBottom: 10,
   },
   accountItemBorder: {
     borderBottomWidth: 1,
@@ -100,7 +143,6 @@ const styles = StyleSheet.create({
     width: 65,
     height: 65,
     borderRadius: 50,
-    backgroundColor: '#6699CC',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 25,
@@ -125,7 +167,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginVertical: 15,
     paddingBottom: 10,
-    top: -10 // Adicionado para dar espaço para a borda
+    top: -10,
   },
   addAccountItemBorder: {
     borderBottomWidth: 1,
@@ -135,16 +177,13 @@ const styles = StyleSheet.create({
     marginLeft: 15,
     fontSize: 17,
     color: 'gray',
-    
   },
   logoutButton: {
-    marginTop: 30,
-    alignSelf: 'center', // Centraliza o botão "Sair"
+    marginTop: 10,
+    alignSelf: 'center',
   },
   logoutText: {
-    color: 'red',
-    fontSize: 16,
-    top: -15
+    color: 'red', 
   },
 });
 

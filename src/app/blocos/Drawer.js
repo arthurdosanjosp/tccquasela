@@ -1,53 +1,53 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../config/firebaseConfig';
+import { signOut } from 'firebase/auth'; 
 
 const Drawer = ({ onClose }) => {
   const router = useRouter();  
-        const [values, setValues] = useState({
-          name: '',
-          publicName: '',
-          email: '',
-          senha: '',
-        });
-        const [isEditing, setIsEditing] = useState({
-        });
-        
-        useEffect(() => {
-          const fetchUserData = async () => {
-            try {
-              const user = auth.currentUser;
-              if (user) {
-                const userDocRef = doc(db, 'usuarios', user.uid); 
-                const userDoc = await getDoc(userDocRef);
-                if (userDoc.exists()) {
-                  setValues(userDoc.data());
-                }
-              }
-            } catch (error) {
-              console.error('Erro ao recuperar dados do usuário:', error);
-            }
-          };
-      
-          fetchUserData();
-        }, []);
-      
-        const toggleEdit = (field) => {
-          setIsEditing((prev) => ({
-            ...prev,
-            [field]: !prev[field],
-          }));
-        };
-      
-        const handleChange = (field, text) => {
-          setValues((prev) => ({
-            ...prev,
-            [field]: text,
-          }));
-        };
+  const [values, setValues] = useState({
+    name: '',
+    publicName: '',
+    email: '',
+    senha: '',
+  });
+  const [isEditing, setIsEditing] = useState({});
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const user = auth.currentUser;
+        if (user) {
+          const userDocRef = doc(db, 'usuarios', user.uid); 
+          const userDoc = await getDoc(userDocRef);
+          if (userDoc.exists()) {
+            setValues(userDoc.data());
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao recuperar dados do usuário:', error);
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
+  const toggleEdit = (field) => {
+    setIsEditing((prev) => ({
+      ...prev,
+      [field]: !prev[field],
+    }));
+  };
+
+  const handleChange = (field, text) => {
+    setValues((prev) => ({
+      ...prev,
+      [field]: text,
+    }));
+  };
 
   const handleNavigation = (path) => {
     router.push(path);
@@ -57,6 +57,16 @@ const Drawer = ({ onClose }) => {
   const handleGoBack = () => {
     router.back();
     onClose();
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth); 
+      router.push('/cadastrar'); 
+      onClose(); 
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
+    }
   };
 
   return (
@@ -126,7 +136,7 @@ const Drawer = ({ onClose }) => {
         </TouchableOpacity>
       </View>
       <View style={styles.items}>
-        <TouchableOpacity onPress={onClose} style={styles.item}>
+      <TouchableOpacity style={styles.item} onPress={() => router.push(handleLogout)}>
           <Icon name="exit-to-app" size={25} color="#696969" />
           <Text style={styles.itemText}>Sair</Text>
         </TouchableOpacity>
