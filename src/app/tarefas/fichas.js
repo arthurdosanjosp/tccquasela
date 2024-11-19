@@ -34,13 +34,23 @@ export default function CriarBloco() {
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [deleteColunaModalVisible, setDeleteColunaModalVisible] = useState(false);
     const [colunaToDelete, setColunaToDelete] = useState(null);
-    
+    const [isDarkMode, setIsDarkMode] = useState(false);
+
 
 
 
 
     const router = useRouter();
-
+    useEffect(() => {
+        // Carrega a preferência do modo escuro
+        const loadDarkMode = async () => {
+            const darkModeSetting = await AsyncStorage.getItem('isDarkMode');
+            if (darkModeSetting !== null) {
+                setIsDarkMode(JSON.parse(darkModeSetting));
+            }
+        };
+        loadDarkMode();
+    }, []);
     const saveColunas = async (colunas) => {
         try {
             const jsonValue = JSON.stringify(colunas);
@@ -226,12 +236,12 @@ export default function CriarBloco() {
     const confirmDeleteColuna = async () => {
         if (colunaToDelete !== null) {
             const updatedColunas = [...colunas];
-            updatedColunas.splice(colunaToDelete, 1); 
-            setColunas(updatedColunas); 
+            updatedColunas.splice(colunaToDelete, 1);
+            setColunas(updatedColunas);
 
             await saveColunas(updatedColunas);
-            setDeleteColunaModalVisible(false); 
-            setColunaToDelete(null); 
+            setDeleteColunaModalVisible(false);
+            setColunaToDelete(null);
         }
     };
 
@@ -381,7 +391,7 @@ export default function CriarBloco() {
 
 
     return (
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, backgroundColor: isDarkMode ? '#333' : 'white' }}>
             <ImageBackground source={require('../img/gradient.png')} style={styles.navbar}>
                 <TouchableOpacity style={styles.iconButton} onPress={() => setDrawerVisible(true)}>
                     <Icon name="menu" size={40} color="#fff" />
@@ -397,15 +407,15 @@ export default function CriarBloco() {
 
             <View style={styles.header}>
                 <TouchableOpacity style={styles.iconButton} onPress={() => router.back()}>
-                    <Icon name="arrow-back" size={30} color="#000" />
+                    <Icon name="arrow-back" size={30} color={isDarkMode ? 'white' : 'black'} />
                 </TouchableOpacity>
-                <Text style={styles.headerText} numberOfLines={1}>{blockName}</Text>
+                <Text style={styles.headerText} numberOfLines={1}>{newBlockName}</Text>
                 <View style={styles.iconContainer}>
                     <TouchableOpacity style={styles.iconButton} onPress={() => setModalVisible(true)}>
-                        <Icon name="add" size={30} color="#000" />
+                        <Icon name="add" size={30} color={isDarkMode ? 'white' : 'black'} />
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.iconButton} onPress={() => setSettingsModalVisible(true)}>
-                        <Icon name="settings" size={30} color="#000" />
+                        <Icon name="settings" size={30} color={isDarkMode ? 'white' : 'black'} />
                     </TouchableOpacity>
                 </View>
             </View>
@@ -543,12 +553,14 @@ export default function CriarBloco() {
                             </View>
 
                             <TextInput
-                                style={styles.input}
+                                style={[styles.input, { textAlignVertical: 'top' }]} // Garante que o texto comece do topo
                                 placeholder="Escreva algo aqui"
                                 value={fichaInput1}
                                 onChangeText={setFichaInput1}
-                                multiline={true}
-                                numberOfLines={1} // Garante que ocupe apenas uma linha inicialmente
+                                placeholderTextColor="#888"
+                                multiline={false} // Impede múltiplas linhas
+                                numberOfLines={1}
+                                maxLength={100} // Limite de caracteres, se necessário
                             />
 
                             <TouchableOpacity style={styles.saveButton} onPress={handleSaveInput}>
@@ -608,33 +620,7 @@ export default function CriarBloco() {
                                 <Icon name="edit" size={24} color="#fff" />
                                 <Text style={styles.settingsOptionText}>Alterar nome do bloco</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity
-                                style={styles.settingsOption}
-                                onPress={() => {
-
-                                }}
-                            >
-                                <Icon name="favorite" size={24} color="#fff" />
-                                <Text style={styles.settingsOptionText}>Favoritar</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={styles.settingsOption}
-                                onPress={() => {
-
-                                }}
-                            >
-                                <Icon name="visibility" size={24} color="#fff" />
-                                <Text style={styles.settingsOptionText}>Ocultar</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={styles.settingsOption}
-                                onPress={() => {
-
-                                }}
-                            >
-                                <Icon name="delete" size={24} color="#fff" />
-                                <Text style={styles.settingsOptionText}>Deletar</Text>
-                            </TouchableOpacity>
+                         
                         </View>
                     </View>
                 </Modal>
@@ -799,7 +785,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingHorizontal: 10,
         paddingVertical: 15,
-        height: 120,
+        height: 140,
         top: -49,
         paddingTop: StatusBar.currentHeight || 20,
     },
@@ -886,7 +872,7 @@ const styles = StyleSheet.create({
     },
     input2: {
         width: '100%',
-        height: 30,
+        height: 40,
         borderColor: 'gray',
         borderWidth: 1,
         borderRadius: 5,

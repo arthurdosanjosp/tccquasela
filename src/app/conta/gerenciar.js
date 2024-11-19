@@ -4,8 +4,10 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../config/firebaseConfig'; 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const AccountScreen = () => {
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const router = useRouter();
   const [values, setValues] = useState({
     name: '',
@@ -18,6 +20,7 @@ const AccountScreen = () => {
 
   const colors = ['#4B6D9B', '#80C49F', '#E8CB73', '#CD6051', '#D17BC1', '#8F5EB6', '#6DCFCF', '#ED942B'];
 
+  
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -68,15 +71,27 @@ const AccountScreen = () => {
       console.error('Erro ao atualizar dados do usuário:', error);
     }
   };
+  useEffect(() => {
+    // Carrega a preferência do modo escuro
+    const loadDarkMode = async () => {
+        const darkModeSetting = await AsyncStorage.getItem('isDarkMode');
+        if (darkModeSetting !== null) {
+            setIsDarkMode(JSON.parse(darkModeSetting));
+        }
+    };
+    loadDarkMode();
+}, []);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: isDarkMode ? '#333' : 'white' }]}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Icon name="arrow-back" size={32} color="#000" />
+        <Icon name="arrow-back" size={32} color={isDarkMode ? 'white' : '#000'} />
+
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Gerenciar Conta</Text>
+        <Text style={[styles.headerTitle, { color: isDarkMode ? 'white' : 'black' }]}>Gerenciar Conta</Text>
+
       </View>
 
       {/* User Info */}
@@ -95,7 +110,8 @@ const AccountScreen = () => {
       </View>
 
       {/* Informações */}
-      <Text style={styles.sectionTitle}>Informações</Text>
+      <Text style={[styles.sectionTitle, { color: isDarkMode ? 'white' : 'black' }]}>Informações</Text>
+
       <View style={styles.section}>
         {/* Nome Completo */}
         <View style={styles.infoRow}>
@@ -165,23 +181,24 @@ const AccountScreen = () => {
 
         {/* Senha */}
         <View style={styles.infoRow}>
-          <View style={styles.infoTextContainer}>
-            <Text style={styles.infoLabel}>Senha</Text>
-            <TextInput
-              style={styles.input}
-              value={values.senha}
-              onChangeText={(text) => handleChange('senha', text)}
-              secureTextEntry={!showPassword}
-            />
-          </View>
-          <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-            <Icon
-              name={showPassword ? 'visibility' : 'visibility-off'}
-              size={24}
-              color="#000"
-            />
-          </TouchableOpacity>
-        </View>
+  <View style={styles.infoTextContainer}>
+    <Text style={styles.infoLabel}>Senha</Text>
+    <TextInput
+      style={styles.input}
+      value={values.senha}
+      secureTextEntry={!showPassword}
+      editable={false} // Torna o campo de senha não editável
+    />
+  </View>
+  <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+    <Icon
+      name={showPassword ? 'visibility' : 'visibility-off'}
+      size={24}
+      color="#000"
+    />
+  </TouchableOpacity>
+</View>
+
         
         </View>
       </View>

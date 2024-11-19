@@ -46,16 +46,17 @@ const CriarContaScreen = () => {
             setEmail('');
             setSenha('');
 
-            router.push('/blocos/criarblocos');
-        } catch (error) {
-            if (error.code === 'auth/email-already-in-use') {
-                Alert.alert('Já existe um usuário com esse email');
-            } else {
-                Alert.alert('Erro', 'Não foi possível criar a conta. Por favor, tente novamente.');
-            }
-            console.error('Erro ao criar usuário:', error);
+    } catch (error) {
+        if (error.code === 'auth/email-already-in-use') {
+            Alert.alert('Já existe um usuário com esse email');
+        } else if (error.code === 'auth/invalid-credential') {
+            Alert.alert('Credenciais inválidas', 'Por favor, verifique seu email e sua senha, e tente novamente.');
+        } else {
+            Alert.alert('Erro', 'Não foi possível criar a conta. Por favor, tente novamente.');
         }
-    };
+        console.error('Erro ao criar usuário:', error);
+    }
+};
 
     return (
         <KeyboardAvoidingView

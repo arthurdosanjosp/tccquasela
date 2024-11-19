@@ -1,10 +1,23 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ImageBackground } from 'react-native';
 import { Ionicons } from '@expo/vector-icons'; // Para o ícone de seta
-import { useRouter } from 'expo-router'; // Usando Expo Router
+import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage'; 
 
 export default function AjudaScreen() {
-  const router = useRouter(); // Inicializando o router
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const router = useRouter(); 
+  
+  useEffect(() => {
+    // Carrega a preferência do modo escuro
+    const loadDarkMode = async () => {
+        const darkModeSetting = await AsyncStorage.getItem('isDarkMode');
+        if (darkModeSetting !== null) {
+            setIsDarkMode(JSON.parse(darkModeSetting));
+        }
+    };
+    loadDarkMode();
+}, []);
 
   return (
     <ImageBackground 
@@ -19,31 +32,40 @@ export default function AjudaScreen() {
           <Text style={styles.headerText}>Ajuda</Text>
         </View>
         
-        <View style={styles.content}>
-          <View style={styles.section}>
-            <Text style={styles.title}>Perguntas frequentes</Text>
-            <Text style={styles.subtitle}>Perguntas mais frequentes feitas por usuários</Text>
-            <TouchableOpacity style={styles.button} onPress={() => router.push('/comunidade/perguntas')}>
-              <Text style={styles.buttonText}>Visualizar</Text>
-            </TouchableOpacity>
-          </View>
+        <View style={[styles.content, { backgroundColor: isDarkMode ? '#333' : 'white' }]}>
+    <View style={styles.section}>
+        <Text style={[styles.title, { color: isDarkMode ? 'white' : 'black' }]}>Perguntas frequentes</Text>
+        <Text style={[styles.subtitle, { color: isDarkMode ? 'lightgray' : 'gray' }]}>Perguntas mais frequentes feitas por usuários</Text>
+        <TouchableOpacity style={styles.button} onPress={() => router.push('/comunidade/perguntas')}>
+            <Text style={styles.buttonText}>Visualizar</Text>
+        </TouchableOpacity>
+    </View>
 
-          <View style={styles.section}>
-            <Text style={styles.title}>Comunidade</Text>
-            <Text style={styles.subtitle}>Perguntas e respostas feitas pelos usuários</Text>
-            <TouchableOpacity style={styles.button} onPress={() => router.push('/comunidade/comunidade')}>
-              <Text style={styles.buttonText}>Visualizar</Text>
-            </TouchableOpacity>
-          </View>
+    <View style={styles.section}>
+        <Text style={[styles.title, { color: isDarkMode ? 'white' : 'black' }]}>Comunidade</Text>
+        <Text style={[styles.subtitle, { color: isDarkMode ? 'lightgray' : 'gray' }]}>Perguntas e respostas feitas pelos usuários</Text>
+        <TouchableOpacity style={styles.button} onPress={() => router.push('/comunidade/comunidade')}>
+            <Text style={styles.buttonText}>Visualizar</Text>
+        </TouchableOpacity>
+    </View>
 
-          <View style={styles.section}>
-            <Text style={styles.title}>Suporte</Text>
-            <Text style={styles.subtitle}>Algum problema? Nos contate!</Text>
-            <TouchableOpacity style={styles.button} onPress={() => router.push('/comunidade/suporte')}>
-              <Text style={styles.buttonText}>Visualizar</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+    <View style={styles.section}>
+        <Text style={[styles.title, { color: isDarkMode ? 'white' : 'black' }]}>Suporte</Text>
+        <Text style={[styles.subtitle, { color: isDarkMode ? 'lightgray' : 'gray' }]}>Algum problema? Nos contate!</Text>
+        <TouchableOpacity style={styles.button} onPress={() => router.push('/comunidade/suporte')}>
+            <Text style={styles.buttonText}>Visualizar</Text>
+        </TouchableOpacity>
+    </View>
+
+    <View style={styles.section}>
+        <Text style={[styles.title, { color: isDarkMode ? 'white' : 'black' }]}>Tutorial</Text>
+        <Text style={[styles.subtitle, { color: isDarkMode ? 'lightgray' : 'gray' }]}>Um tutorial completo e prático.</Text>
+        <TouchableOpacity style={styles.button} onPress={() => router.push('/tutorial/part2')}>
+            <Text style={styles.buttonText}>Visualizar</Text>
+        </TouchableOpacity>
+    </View>
+</View>
+
       </View>
     </ImageBackground>
   );
@@ -63,9 +85,9 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    padding: 10,
     position: 'absolute',
-    top: 50, // Posição fixa para o header
+    top: 30, // Posição fixa para o header
     left: 1,
   },
   headerText: {
@@ -87,7 +109,7 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
   },
   section: {
-    marginBottom: 24,
+    marginBottom: 14,
     width: '100%',
   },
   title: {
@@ -97,7 +119,7 @@ const styles = StyleSheet.create({
     textAlign: 'left', 
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#6e6e6e',
     marginBottom: 8,
     textAlign: 'left', 
@@ -108,8 +130,8 @@ const styles = StyleSheet.create({
     borderRadius: 60,
     alignItems: 'center', 
     alignSelf: 'center', 
-    width: '30%',
-    right: 110, 
+    width: '40%',
+    right: 100, 
     marginBottom: 10,
   },
   buttonText: {

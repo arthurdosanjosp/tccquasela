@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "Schedul",
-    "slug": "Schedul",
+    "name": "Schedule",
+    "slug": "Schedule",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/ss.jpeg",
     "userInterfaceStyle": "light",
     "scheme": "Schedul",
     "splash": {
@@ -20,7 +20,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/splash1.jpeg",
         "backgroundColor": "#ffffff"
       },
       "package": "com.arthuranjos.Schedul"

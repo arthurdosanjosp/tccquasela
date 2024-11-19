@@ -15,8 +15,19 @@ const Favoritos = () => {
     const [hiddenBlocks, setHiddenBlocks] = useState([]);
     const [confirmDeleteModalVisible, setConfirmDeleteModalVisible] = useState(false);
     const [blockToDeleteId, setBlockToDeleteId] = useState(null);
+    const [isDarkMode, setIsDarkMode] = useState(false);
     const router = useRouter();
 
+    useEffect(() => {
+        // Carrega a preferência do modo escuro
+        const loadDarkMode = async () => {
+            const darkModeSetting = await AsyncStorage.getItem('isDarkMode');
+            if (darkModeSetting !== null) {
+                setIsDarkMode(JSON.parse(darkModeSetting));
+            }
+        };
+        loadDarkMode();
+    }, []);
     useEffect(() => {
         const loadBlocks = async () => {
             try {
@@ -137,27 +148,33 @@ const Favoritos = () => {
     };
 
     const renderItem = ({ item }) => (
-        <View style={[styles.block, { backgroundColor: item.color }]}>
-            <Text style={styles.blockText}>{item.name}</Text>
-            <View style={styles.blockFooter}>
-                <TouchableOpacity
-                    style={styles.iconTouchable}
-                    onPress={() => toggleFavorite(item.id)}
-                >
-                    <Icon name="favorite" size={15} color={favoritedBlocks.includes(item.id) ? "red" : "#fff"} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={styles.iconTouchable}
-                    onPress={() => handleVisibilityToggle(item.id)}
-                >
-                    <Icon name={hiddenBlocks.includes(item.id) ? "visibility-off" : "visibility"} size={15} color="#fff" />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.iconTouchable} onPress={() => handleDeleteBlock(item.id)}>
-                    <Icon name="delete" size={15} color="#fff" />
-                </TouchableOpacity>
+        <TouchableOpacity  onPress={() => router.push(`/tarefas/fichas?blockName=${item.name}`)}>
+            <View style={[styles.block, { backgroundColor: item.color }]}>
+                <Text style={styles.blockText}>{item.name}</Text>
+                <View style={styles.blockFooter}>
+                    <TouchableOpacity
+                        style={styles.iconTouchable}
+                        onPress={() => toggleFavorite(item.id)}
+                    >
+                        <Icon name="favorite" size={20} color={favoritedBlocks.includes(item.id) ? "red" : "#fff"} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.iconTouchable}
+                        onPress={() => handleVisibilityToggle(item.id)}
+                    >
+                        <Icon name={hiddenBlocks.includes(item.id) ? "visibility-off" : "visibility"} size={20} color="#fff" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.iconTouchable}
+                        onPress={() => handleDeleteBlock(item.id)}
+                    >
+                        <Icon name="delete" size={20} color="#fff" />
+                    </TouchableOpacity>
+                </View>
             </View>
-        </View>
+        </TouchableOpacity>
     );
+    
 
     const renderFichaItem = (ficha) => (
         <View key={ficha.id} style={styles.fichaContainer} onPress={() => handleOpenFichaModal(ficha)}>
@@ -184,36 +201,34 @@ const Favoritos = () => {
     );
 
     return (
-        <>
-            <ImageBackground source={require('../img/gradient.png')} style={styles.navbar}>
-                <View style={styles.navTop}>
-                    <TouchableOpacity style={styles.iconButton} onPress={() => setDrawerVisible(true)}>
-                        <Icon name="menu" size={40} color="#fff" />
-                    </TouchableOpacity>
-                    <Text style={styles.title1}>SCHEDULE</Text>
-                    <TouchableOpacity  onPress={() => router.push('/navbar/configuracoes')} style={styles.iconButton}>
-                        <Icon name="account-circle" size={40} color="#fff" />
-                    </TouchableOpacity>
-                </View>
-                <View style={styles.searchContainer}>
-                    <TextInput
-                        style={styles.searchBar}
-                        placeholder="Pesquisar"
-                        placeholderTextColor="#888"
-                        value={searchText}
-                        onChangeText={handleSearchTextChange}
-                    />
-                    <Icon name="search" size={24} color="#888" style={styles.searchIcon} />
-                </View>
-
-                {/* Renderize o Drawer condicionalmente */}
-              
-            </ImageBackground>
+        <View style={{ flex: 1, backgroundColor: isDarkMode ? '#333' : 'white' }}>
+        <ImageBackground source={require('../img/gradient.png')} style={styles.navbar}>
+            <View style={styles.navTop}>
+                <TouchableOpacity style={styles.iconButton} onPress={() => setDrawerVisible(true)}>
+                    <Icon name="menu" size={40} color="#fff" />
+                </TouchableOpacity>
+                <Text style={styles.title1}>SCHEDULE</Text>
+                <TouchableOpacity onPress={() => router.push('/navbar/configuracoes')} style={styles.iconButton}>
+                    <Icon name="account-circle" size={40} color="#fff" />
+                </TouchableOpacity>
+            </View>
+            <View style={styles.searchContainer}>
+                <TextInput
+                    style={styles.searchBar}
+                    placeholder="Pesquisar"
+                    placeholderTextColor="#888"
+                    value={searchText}
+                    onChangeText={handleSearchTextChange}
+                />
+                <Icon name="search" size={24} color="#888" style={styles.searchIcon} />
+            </View>
+        </ImageBackground>
             {isDrawerVisible && <Drawer onClose={() => setDrawerVisible(false)} />}
 
             <View style={styles.contentContainer}>
                 <Text style={styles.title2}>Favoritos</Text>
-                <Text style={styles.subtitle}>Meus Favoritos</Text>
+                <Text style={[styles.subtitle, { color: isDarkMode ? 'white' : 'black' }]}>Meus Favoritos</Text>
+
                 <FlatList
                     data={filteredData}
                     keyExtractor={(item, index) => index.toString()}
@@ -248,7 +263,7 @@ const Favoritos = () => {
                     </Modal>
                 </View>
             </View>
-        </>
+        </View>
     );
 };
 
@@ -259,7 +274,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingHorizontal: 10,
         paddingVertical: 15,
-        height: 190,
+        height: 210,
         top: -49,
         paddingTop: StatusBar.currentHeight || 20,
     },

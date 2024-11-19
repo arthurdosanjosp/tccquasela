@@ -1,11 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, ImageBackground, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons'; 
 import { useRouter } from 'expo-router'; 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const PerguntasFrequentes = () => {
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const router = useRouter(); 
-
+  useEffect(() => {
+    // Carrega a preferência do modo escuro
+    const loadDarkMode = async () => {
+        const darkModeSetting = await AsyncStorage.getItem('isDarkMode');
+        if (darkModeSetting !== null) {
+            setIsDarkMode(JSON.parse(darkModeSetting));
+        }
+    };
+    loadDarkMode();
+}, []);
   const perguntas = [
     { 
       pergunta: 'Como criar uma ficha?', 
@@ -20,19 +31,7 @@ const PerguntasFrequentes = () => {
         '1. Clique na ficha;\n' +
         '2. Haverá a opção de descrição da ficha e em baixo uma opção de data.' 
     },
-    { 
-      pergunta: 'Como trocar imagem de perfil?', 
-      resposta: 
-        '1. Clique nas três linhas no canto superior esquerdo(Menu);\n' +
-        '2. Clique na primeira opção, a de perfil;\n' +
-        '3. Clique na "Gerenciar conta";\n' +
-        '4. Entrará na página de perfil com diversas opções, entre essas na parte superior da tela terá um ícone de câmera, clique nele.\n' +
-        'OU\n' +
-        '1. Clique nas três linhas no canto superior esquerdo(Menu);\n' +
-        '2. Clique na quinta opção, a de "configurações";\n' +
-        '3. "Gerenciar Conta";\n' +
-        '4. Clique no ícone da câmera.'
-    },
+   
     { 
       pergunta: 'Como alterar o meu e-mail?', 
       resposta: 
@@ -92,7 +91,7 @@ const PerguntasFrequentes = () => {
       source={require('../img/gradient (6).jpeg')} 
       style={styles.backgroundImage}
     >
-      <View style={styles.container}>
+      <View style={[styles.container]}>
         <View style={styles.header}>
           <Ionicons 
             name="arrow-back" 
@@ -103,7 +102,7 @@ const PerguntasFrequentes = () => {
           <Text style={styles.title}>Perguntas frequentes</Text>
         </View>
 
-        <View style={styles.card}>
+        <View style={[styles.card, { flex: 0.9, backgroundColor: isDarkMode ? '#333' : 'white' }]}>
           <ScrollView contentContainerStyle={styles.list}>
             {perguntas.map((item, index) => (
               <View key={index}>
@@ -118,6 +117,9 @@ const PerguntasFrequentes = () => {
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 0.9, 
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

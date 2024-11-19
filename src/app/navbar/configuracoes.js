@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ImageBackground, StyleSheet, StatusBar } from 'react-native';
+import { View, Text, TouchableOpacity, ImageBackground, StyleSheet, StatusBar, BackHandler } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router'; 
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../config/firebaseConfig'; 
 import { signOut } from 'firebase/auth'; 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function Config() {
     const router = useRouter();
@@ -13,7 +14,18 @@ export default function Config() {
         email: '',
     });
     const [profileBgColor, setProfileBgColor] = useState('#4B6D9B');
+    const [isDarkMode, setIsDarkMode] = useState(false);
 
+    useEffect(() => {
+        // Carrega a preferência do modo escuro
+        const loadDarkMode = async () => {
+            const darkModeSetting = await AsyncStorage.getItem('isDarkMode');
+            if (darkModeSetting !== null) {
+                setIsDarkMode(JSON.parse(darkModeSetting));
+            }
+        };
+        loadDarkMode();
+    }, []);
     useEffect(() => {
         const fetchUserData = async () => {
             try {
@@ -41,60 +53,69 @@ export default function Config() {
         return userData.name ? userData.name.charAt(0).toUpperCase() : 'U';
     };
     
-  const handleLogout = async () => {
-    try {
-      await signOut(auth); 
-      router.push('/cadastrar'); 
-      onClose(); 
-    } catch (error) {
-      console.error('Erro ao fazer logout:', error);
-    }
-  };
-
+    const handleLogout = async () => {
+        try {
+         
+          const keys = await AsyncStorage.getAllKeys();
+          
+          
+          if (keys.length > 0) {
+            await AsyncStorage.multiRemove(keys);
+          }
+      
+          await signOut(auth);
+          
+          router.push('/cadastrar');
+          onClose(); 
+        } catch (error) {
+          console.error('Erro ao fazer logout e limpar armazenamento:', error);
+        }
+      };
 
     return (
-        <View style={styles.container}>
-            <ImageBackground source={require('../img/gradient.png')} style={styles.navbar}>
-                <TouchableOpacity style={styles.iconButton} onPress={() => router.back()}>
-                    <Icon name="arrow-back" size={40} color="#fff" />
-                </TouchableOpacity>
-                <Text style={styles.title}>Configurações</Text>
-            </ImageBackground>
-
-            <View style={styles.profileContainer}>
-                <View style={[styles.profileIcon, { backgroundColor: profileBgColor }]}>
-                    <Text style={styles.profileInitial}>{getInitial()}</Text>
-                </View>
-                <View style={styles.profileDetails}>
-                    <Text style={styles.profileName}>{userData.name || 'Nome Completo'}</Text>
-                    <Text style={styles.profileEmail}>{userData.email || 'Email'}</Text>
-                    <TouchableOpacity onPress={() => router.push('/conta/gerenciar')}>
-                        <Text style={styles.editText}>Editar</Text>
-                    </TouchableOpacity>
-                </View>
+        <View style={[styles.container, { backgroundColor: isDarkMode ? '#333' : 'white' }]}> 
+        <ImageBackground source={require('../img/gradient.png')} style={styles.navbar}>
+            <TouchableOpacity style={styles.iconButton} onPress={() => router.back()}>
+                <Icon name="arrow-back" size={40} color="#fff" />
+            </TouchableOpacity>
+            <Text style={[styles.title]}>Configurações</Text>
+        </ImageBackground>
+    
+        <View style={styles.profileContainer}>
+            <View style={[styles.profileIcon, { backgroundColor: profileBgColor }]}>
+                <Text style={styles.profileInitial }>{getInitial()}</Text>
             </View>
-
-            <View style={styles.optionsContainer}>
-                <TouchableOpacity style={styles.optionItem} onPress={() => router.push('/conta/alterar')}>  
-                    <Icon name="sync-alt" size={40} color="#424242" />
-                    <Text style={styles.optionText}>Alternar conta</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.optionItem} onPress={() => router.push('/conta/gerenciar')}>
-                    <Icon name="manage-accounts" size={40} color="#424242" />
-                    <Text style={styles.optionText}>Gerenciar conta</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.optionItem} onPress={() => router.push('/conta/ajuda')}>
-                    <Icon name="help-outline" size={40} color="#424242" />
-                    <Text style={styles.optionText}>Ajuda</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.optionItem} onPress={() => router.push(handleLogout)}>
-                    <Icon name="logout" size={40} color="#424242" />
-                    <Text style={styles.optionText}>Sair</Text>
+            <View style={styles.profileDetails}>
+                <Text style={[styles.profileName, { color: isDarkMode ? 'white' : 'black' }]}>{userData.name || 'Nome Completo'}</Text>
+                <Text style={[styles.profileEmail, { color: isDarkMode ? 'gray' : 'gray' }]}>{userData.email || 'Email'}</Text>
+                <TouchableOpacity onPress={() => router.push('/conta/gerenciar')}>
+                    <Text style={[styles.editText]}>Editar</Text>
                 </TouchableOpacity>
             </View>
+        </View>
+
+        <View style={styles.optionsContainer}>
+    <TouchableOpacity style={styles.optionItem} onPress={() => router.push('/conta/alterar')}>  
+        <Icon name="sync-alt" size={40} color={isDarkMode ? 'white' : '#424242'} />
+        <Text style={[styles.optionText, { color: isDarkMode ? 'white' : 'black' }]}>Alternar conta</Text>
+    </TouchableOpacity>
+
+    <TouchableOpacity style={styles.optionItem} onPress={() => router.push('/conta/gerenciar')}>
+        <Icon name="manage-accounts" size={40} color={isDarkMode ? 'white' : '#424242'} />
+        <Text style={[styles.optionText, { color: isDarkMode ? 'white' : 'black' }]}>Gerenciar conta</Text>
+    </TouchableOpacity>
+
+    <TouchableOpacity style={styles.optionItem} onPress={() => router.push('/conta/ajuda')}>
+        <Icon name="help-outline" size={40} color={isDarkMode ? 'white' : '#424242'} />
+        <Text style={[styles.optionText, { color: isDarkMode ? 'white' : 'black' }]}>Ajuda</Text>
+    </TouchableOpacity>
+
+    <TouchableOpacity style={styles.optionItem} onPress={() => BackHandler.exitApp()}>
+        <Icon name="logout" size={40} color={isDarkMode ? 'white' : '#424242'} />
+        <Text style={[styles.optionText, { color: isDarkMode ? 'white' : 'black' }]}>Sair</Text>
+    </TouchableOpacity>
+</View>
+
         </View>
     );
 }
@@ -109,7 +130,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingHorizontal: 10,
         paddingVertical: 15,
-        height: 150,
+        height: 170,
         top: -49,
         paddingTop: StatusBar.currentHeight || 20,
     },
@@ -150,7 +171,7 @@ const styles = StyleSheet.create({
         color: '#000',
     },
     profileEmail: {
-        fontSize: 18,
+        fontSize: 16,
         color: '#616161',
         marginVertical: 2,
     },

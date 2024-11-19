@@ -28,12 +28,12 @@ export default function Home() {
         const newBlocks = [...blocks, newBlock];
         setBlocks(newBlocks);
         await saveBlocks(newBlocks);
-        await AsyncStorage.setItem(`blockColor_${blockName}`, selectedColor.color); // Salva a cor do bloco
+        await AsyncStorage.setItem(`blockColor_${blockName}`, selectedColor.color);
 
         setBlockName('');
         setSelectedColor({ color: '', selected: false });
         setModalVisible(false);
-        router.push(`/blocos/areadtrabalho?blocks=${encodeURIComponent(JSON.stringify(newBlocks.map(block => ({ id: block.id, name: block.name, color: block.color }))))}`);
+        router.push(`/blocos/areadtrabalho?blocks=${encodeURIComponent(JSON.stringify(newBlocks))}`);
     }
 };
 
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 10,
     paddingVertical: 15,
-    height: 120,
+    height: 140,
     top: -49,
     paddingTop: StatusBar.currentHeight || 20,
   },
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
   },
   image: {
     width: '100%',
-    height: 400,
+    height: 350,
     resizeMode: 'cover',
     top: -20,
   },
@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
   },
   input: {
     width: '100%',
-    height: 30,
+    height: 40,
     borderColor: 'gray',
     borderWidth: 1,
     borderRadius: 5,

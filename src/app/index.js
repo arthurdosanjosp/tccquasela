@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image } from 'react-native';
-import {Link} from 'expo-router'
+import { Link } from 'expo-router';
 
 const App = () => {
   return (
@@ -20,18 +20,17 @@ const App = () => {
         source={require('./img/bola1.jpeg')}
       />
       
-       <View style={styles.buttonContainer}>
-  
-       <Link href="/entar" asChild>
-      <TouchableOpacity style={styles.button} onPress={() => console.log('Entrar')}>
-        <Text style={styles.buttonText}>ENTRAR</Text>
-      </TouchableOpacity>
-    </Link>
-    <Link href="/cadastrar" asChild>
-      <TouchableOpacity style={styles.button} onPress={() => console.log('Entrar')}>
-        <Text style={styles.buttonText}>CADASTRAR</Text>
-      </TouchableOpacity>
-    </Link>
+      <View style={styles.buttonContainer}>
+        <Link href="/entar" asChild>
+          <TouchableOpacity style={styles.button} onPress={() => console.log('Entrar')}>
+            <Text style={styles.buttonText}>ENTRAR</Text>
+          </TouchableOpacity>
+        </Link>
+        <Link href="/cadastrar" asChild>
+          <TouchableOpacity style={styles.button} onPress={() => console.log('Cadastrar')}>
+            <Text style={styles.buttonText}>CADASTRAR</Text>
+          </TouchableOpacity>
+        </Link>
       </View>
     </View>
   );
@@ -55,7 +54,7 @@ const styles = StyleSheet.create({
     marginBottom: -30, 
   },
   startButtonText: {
-    fontSize: 50,
+    fontSize: 40,
     fontWeight: 'bold',
     color: 'black',
   },
@@ -66,10 +65,10 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: 'white',
-    padding: 20,
+    paddingVertical: 15,
+    paddingHorizontal: 30,
     borderRadius: 50,
     width: 260,
-    height: 60,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 10,
@@ -78,8 +77,7 @@ const styles = StyleSheet.create({
     fontSize: 21,
     fontWeight: 'bold',
     color: 'black',
-    
-  }, 
+  },
   normalText: {
     fontSize: 16,
     color: 'black',

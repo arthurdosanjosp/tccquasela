@@ -12,8 +12,9 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, addDoc, collection, updateDoc, getDocs, query, orderBy } from 'firebase/firestore';
 import { auth, db } from '../config/firebaseConfig';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
 const CustomScreen = () => {
@@ -32,8 +33,12 @@ const CustomScreen = () => {
     const [selectedDescription, setSelectedDescription] = useState('');
     const [selectedQuestionId, setSelectedQuestionId] = useState(null);
     const [visibleComments, setVisibleComments] = useState({});
+    const [userName, setUserName] = useState('');
+    const [commentUserName, setCommentUserName] = useState('');
     const colors = ['#4B6D9B', '#80C49F', '#E8CB73', '#CD6051', '#D17BC1', '#8F5EB6', '#6DCFCF', '#ED942B'];
-    
+    const [isDarkMode, setIsDarkMode] = useState(false);
+    const [activeFilter, setActiveFilter] = useState('Todas');
+    const [isFilterVisible, setIsFilterVisible] = useState(true);
 
 
 
@@ -42,13 +47,76 @@ const CustomScreen = () => {
     const getRandomColor = () => {
         return colors[Math.floor(Math.random() * colors.length)];
     };
+    const toggleFilter = (filterType) => {
+        setActiveFilter(filterType);
+    };
+    const toggleFilterVisibility = () => {
+        setIsFilterVisible(!isFilterVisible);
+    };
+    const getFilteredQuestions = () => {
+        if (activeFilter === 'Todas') {
+            return filteredQuestions; // Todas as perguntas sem filtro específico
+        } else if (activeFilter === 'Minhas perguntas') {
+            return filteredQuestions.filter(q => q.userName === values.name); // Filtra apenas as perguntas do usuário
+        }
+        return filteredQuestions;
+    };
 
     const [values, setValues] = useState({
         name: '',
     });
     const [isEditing, setIsEditing] = useState({
     });
+    useEffect(() => {
+        // Carrega a preferência do modo escuro
+        const loadDarkMode = async () => {
+            const darkModeSetting = await AsyncStorage.getItem('isDarkMode');
+            if (darkModeSetting !== null) {
+                setIsDarkMode(JSON.parse(darkModeSetting));
+            }
+        };
+        loadDarkMode();
+    }, []);
+    useEffect(() => {
+        const fetchUserName = async () => {
+            try {
+                const user = auth.currentUser;
+                if (user) {
+                    const userDocRef = doc(db, 'usuarios', user.uid);
+                    const userDoc = await getDoc(userDocRef);
 
+                    if (userDoc.exists()) {
+                        setUserName(userDoc.data().name); // Carrega o nome de usuário
+                    } else {
+                        console.error('Documento do usuário não encontrado no Firestore.');
+                    }
+                } else {
+                    console.error('Usuário não autenticado.');
+                }
+            } catch (error) {
+                console.error('Erro ao recuperar dados do usuário:', error);
+            }
+        };
+
+        fetchUserName();
+    }, []);
+
+    useEffect(() => {
+        const fetchQuestionsFromFirestore = async () => {
+            try {
+                const querySnapshot = await getDocs(query(collection(db, 'questions'), orderBy('date', 'desc')));
+                const questionsArray = querySnapshot.docs.map((doc) => ({
+                    id: doc.id,
+                    ...doc.data(),
+                }));
+                setQuestions(questionsArray);
+            } catch (error) {
+                console.error('Erro ao carregar perguntas do Firestore:', error);
+            }
+        };
+
+        fetchQuestionsFromFirestore();
+    }, []);
     useEffect(() => {
         const fetchUserData = async () => {
             try {
@@ -56,9 +124,14 @@ const CustomScreen = () => {
                 if (user) {
                     const userDocRef = doc(db, 'usuarios', user.uid);
                     const userDoc = await getDoc(userDocRef);
+
                     if (userDoc.exists()) {
                         setValues(userDoc.data());
+                    } else {
+                        console.error('Documento do usuário não encontrado no Firestore.');
                     }
+                } else {
+                    console.error('Usuário não autenticado.');
                 }
             } catch (error) {
                 console.error('Erro ao recuperar dados do usuário:', error);
@@ -67,7 +140,13 @@ const CustomScreen = () => {
 
         fetchUserData();
     }, []);
-
+    const formatDate = (date) => {
+        if (!date) return 'Data não disponível';
+        const months = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+        const day = date.getDate();
+        const month = months[date.getMonth()];
+        return `${day} ${month}`;
+    };
     const toggleEdit = (field) => {
         setIsEditing((prev) => ({
             ...prev,
@@ -93,25 +172,35 @@ const CustomScreen = () => {
         }
     }, [searchText, questions]);
 
-    const handlePublish = () => {
-        if (newQuestion.trim() && newDescription.trim()) {
-            // Adiciona nova pergunta à lista com a data atual
+    const handlePublish = async () => {
+        if (newQuestion.trim() && newDescription.trim() && userName.trim()) {
             const newQuestionObject = {
-                id: questions.length + 1,
                 question: newQuestion,
                 description: newDescription,
                 color: selectedColor,
                 date: new Date(),
                 tag: selectedTag,
-                comments: [] // Inicialmente sem comentários
+                comments: [],
+                userName: userName, // Garante que cada pergunta use o `userName` atual
             };
-            setQuestions([...questions, newQuestionObject]);
-            setModalVisible(false);
-            setNewQuestion(''); // Limpa o campo de pergunta
-            setNewDescription(''); // Limpa o campo de descrição
-            setSelectedTag('Tag'); // Reseta a tag selecionada
+
+            try {
+                const docRef = await addDoc(collection(db, 'questions'), newQuestionObject);
+                setQuestions((prevQuestions) => [
+                    ...prevQuestions,
+                    { ...newQuestionObject, id: docRef.id },
+                ]);
+                setModalVisible(false);
+                setNewQuestion('');
+                setNewDescription('');
+                setSelectedTag('Tag');
+            } catch (error) {
+                console.error('Erro ao publicar a pergunta no Firestore:', error);
+            }
         }
     };
+
+
 
     const handleTagSelect = (tag) => {
         setSelectedTag(tag);
@@ -123,31 +212,45 @@ const CustomScreen = () => {
         setSelectedQuestionId(question.id); // Salva o ID da pergunta selecionada
         setDescriptionModalVisible(true);
     };
-    const handlePublishComment = () => {
-        if (selectedDescription.trim()) {
-            // Adiciona a nova resposta como um comentário à pergunta selecionada
-            const updatedQuestions = questions.map(q => {
-                if (q.id === selectedQuestionId) {
-                    return {
-                        ...q,
-                        comments: [...(q.comments || []), selectedDescription], // Adiciona o comentário
-                    };
-                }
-                return q;
-            });
+    const handlePublishComment = async () => {
+        if (selectedDescription.trim() && commentUserName.trim()) {
+            const newComment = {
+                text: selectedDescription,
+                userName: commentUserName,
+                date: new Date()
+            };
 
-            setQuestions(updatedQuestions); // Atualiza o estado das perguntas
-            setDescriptionModalVisible(false); // Fecha o modal
-            setSelectedDescription(''); // Limpa o campo de descrição
+            try {
+                const questionDocRef = doc(db, 'questions', selectedQuestionId);
+                const updatedComments = [
+                    ...questions.find(q => q.id === selectedQuestionId).comments,
+                    newComment,
+                ];
+
+                await updateDoc(questionDocRef, { comments: updatedComments });
+
+                setQuestions((prevQuestions) =>
+                    prevQuestions.map((q) =>
+                        q.id === selectedQuestionId ? { ...q, comments: updatedComments } : q
+                    )
+                );
+                setDescriptionModalVisible(false);
+                setSelectedDescription('');
+                setCommentUserName('');
+            } catch (error) {
+                console.error('Erro ao publicar o comentário no Firestore:', error);
+            }
         }
     };
+
+
     const toggleCommentsVisibility = (questionId) => {
         setVisibleComments((prevVisibleComments) => ({
             ...prevVisibleComments,
             [questionId]: !prevVisibleComments[questionId] // Alterna entre mostrar e ocultar
         }));
     };
-    
+
 
 
 
@@ -155,10 +258,11 @@ const CustomScreen = () => {
 
     const renderQuestionItem = ({ item }) => {
         const formattedDate = new Date(item.date).toLocaleDateString(); // Formata a data para um formato legível
-        const isVisible = visibleComments[item.id]; 
+        const isVisible = visibleComments[item.id];
         const randomColor = getRandomColor();
 
         return (
+
             <View style={styles.questionCard}>
                 {/* Título da Pergunta e Descrição */}
                 <Text style={styles.questionTitle}>{item.question}</Text>
@@ -174,14 +278,14 @@ const CustomScreen = () => {
                 {/* Usuário, Contagem de Comentários e Data */}
                 <View style={styles.questionFooter}>
                     <View style={styles.userContainer}>
-                    <View style={[styles.userAvatar, { backgroundColor: randomColor }]}>
+                        <View style={[styles.userAvatar, { backgroundColor: randomColor }]}>
                             <Text style={styles.userInitial}>
-                                {values.name ? values.name.charAt(0).toUpperCase() : 'U'} { }
+                                {item.userName ? item.userName.charAt(0).toUpperCase() : 'U'} { }
                             </Text>
                         </View>
 
                         <View style={styles.userInfo}>
-                            <Text style={styles.infoValue}>{values.name}</Text>
+                            <Text style={styles.infoValue}>{item.userName}</Text>
                         </View>
                     </View>
 
@@ -198,7 +302,7 @@ const CustomScreen = () => {
                         </TouchableOpacity>
                         <Icon name="access-time" size={16} color="#666" />
                         <Text style={styles.date}>
-                            {new Date(item.date).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' })}
+                            {item.date && item.date.toDate ? formatDate(item.date.toDate()) : 'Data não disponível'}
                         </Text>
                     </View>
                 </View>
@@ -209,37 +313,34 @@ const CustomScreen = () => {
                         {item.comments.length > 0 ? (
                             item.comments.map((comment, index) => (
                                 <View key={index} style={styles.commentItem}>
-                                    <Text style={styles.questionDescription}>{comment}</Text>
-                                    {/* Estrutura do comentário igual à pergunta */}
+                                    <Text style={styles.questionDescription}>{comment.text}</Text>
+
                                     <View style={styles.questionFooter}>
                                         <View style={styles.userContainer}>
-                                        <View style={[styles.userAvatar, { backgroundColor: randomColor }]}>
+                                            <View style={[styles.userAvatar, { backgroundColor: randomColor }]}>
                                                 <Text style={styles.userInitial}>
-                                                    {values.name ? values.name.charAt(0).toUpperCase() : 'U'} { }
+                                                    {comment.userName ? comment.userName.charAt(0).toUpperCase() : 'U'}
                                                 </Text>
                                             </View>
 
-
                                             <View style={styles.userInfo}>
-                                                <Text style={styles.infoValue}>{values.name}</Text>
+                                                <Text style={styles.infoValue}>{comment.userName}</Text>
                                             </View>
                                         </View>
 
                                         <View style={styles.commentInfo}>
                                             <Icon name="access-time" size={16} color="#666" />
                                             <Text style={styles.date}>
-                                                {new Date(item.date).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' })}
+                                                {item.date && item.date.toDate ? formatDate(item.date.toDate()) : 'Data não disponível'}
                                             </Text>
                                         </View>
                                     </View>
-
-                                    {/* Texto do comentário */}
-                                    <Text style={styles.commentText}>{comment.text}</Text>
                                 </View>
                             ))
                         ) : (
                             <Text style={styles.noCommentsText}>Nenhum comentário ainda.</Text>
                         )}
+
                     </View>
                 )}
             </View>
@@ -250,216 +351,240 @@ const CustomScreen = () => {
 
 
     return (
+        <View style={[styles.container, { flex: 1, backgroundColor: isDarkMode ? '#333' : 'white' }]}>
+            <>
+                <ImageBackground source={require('../img/gradient.png')} style={styles.navbar}>
+                    <View style={styles.navTop}>
+                        <TouchableOpacity style={styles.iconButton} onPress={() => router.back()}>
+                            <Icon name="arrow-back" size={35} color="#fff" />
+                        </TouchableOpacity>
+                        <Text style={styles.title1}>Comunidade</Text>
+                        <TouchableOpacity onPress={() => router.push('/navbar/configuracoes')} style={styles.iconButton}>
+                            <Icon name="account-circle" size={40} color="#fff" />
+                        </TouchableOpacity>
+                    </View>
+                    <View style={styles.searchContainer}>
+                        <TextInput
+                            style={styles.searchBar}
+                            placeholder="Pesquisar"
+                            placeholderTextColor="#888"
+                            value={searchText}
+                            onChangeText={(text) => setSearchText(text)}
+                        />
+                        <Icon name="search" size={24} color="#888" style={styles.searchIcon} />
+                    </View>
+                </ImageBackground>
+                <View style={[styles.optionsContainer, { backgroundColor: isDarkMode ? '#333' : 'white' }]}>
+    {isFilterVisible && (
         <>
-            <ImageBackground source={require('../img/gradient.png')} style={styles.navbar}>
-                <View style={styles.navTop}>
-                    <TouchableOpacity style={styles.iconButton} onPress={() => router.back()}>
-                        <Icon name="arrow-back" size={35} color="#fff" />
-                    </TouchableOpacity>
-                    <Text style={styles.title1}>Comunidade</Text>
-                    <TouchableOpacity onPress={() => router.push('/navbar/configuracoes')} style={styles.iconButton}>
-                        <Icon name="account-circle" size={40} color="#fff" />
-                    </TouchableOpacity>
-                </View>
-                <View style={styles.searchContainer}>
-                    <TextInput
-                        style={styles.searchBar}
-                        placeholder="Pesquisar"
-                        placeholderTextColor="#888"
-                        value={searchText}
-                        onChangeText={(text) => setSearchText(text)}
-                    />
-                    <Icon name="search" size={24} color="#888" style={styles.searchIcon} />
-                </View>
-            </ImageBackground>
-            <View style={styles.optionsContainer}>
-                <TouchableOpacity>
-                    <Text style={styles.optionTextActive}>Todas</Text>
-                </TouchableOpacity>
-                <TouchableOpacity>
-                    <Text style={styles.optionText}>Minhas perguntas</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.iconFilterButton}>
-                    <Icon name="tune" size={24} color="#666" />
-                </TouchableOpacity>
-            </View>
-
-            {/* List of questions */}
-            <FlatList
-                data={filteredQuestions} // Use a lista filtrada
-                keyExtractor={(item) => item.id.toString()}
-                renderItem={renderQuestionItem}
-                style={styles.questionList}
-            />
-
-            <TouchableOpacity
-                style={styles.addButton}
-                onPress={() => {
-                    setColorModalVisible(false);
-                    setModalVisible(true);
-                }}
-            >
-                <View style={styles.addIconContainer}>
-                    <Icon name="add" size={30} color="#fff" />
-                </View>
+            <TouchableOpacity onPress={() => toggleFilter('Todas')}>
+                <Text style={[activeFilter === 'Todas' ? styles.optionTextActive : styles.optionText, { color: isDarkMode ? 'white' : 'black' }]}>Todas</Text>
             </TouchableOpacity>
-
-            {/* Modal Principal */}
-            <Modal
-                animationType="slide"
-                transparent={true}
-                visible={modalVisible}
-                onRequestClose={() => setModalVisible(false)}
-            >
-                <View style={styles.modalContainer}>
-                    <View style={styles.modalContent}>
-                        <View style={styles.modalHeader}>
-                            <TouchableOpacity onPress={() => setModalVisible(false)}>
-                                <Icon name="arrow-back" size={25} color="#000" />
-                            </TouchableOpacity>
-                            <Text style={styles.modalTitle}>Faça uma pergunta</Text>
-                        </View>
-
-                        <Text style={styles.label}>
-                            <Text style={styles.asterisk}>*</Text> Pergunta
-                        </Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Digite sua pergunta"
-                            value={newQuestion}
-                            onChangeText={setNewQuestion}
-                        />
-                        <Text style={styles.label}>
-                            <Text style={styles.asterisk}>*</Text> Descrição
-                        </Text>
-                        <TextInput
-                            style={[styles.input, { height: 100 }]}
-                            multiline={true}
-                            placeholder="Digite a descrição"
-                            value={newDescription}
-                            onChangeText={setNewDescription}
-                        />
-                        <Text style={styles.label}>Tag</Text>
-                        <View style={styles.tagContainer}>
-                            <TouchableOpacity
-                                style={styles.tagButton}
-                                onPress={() => {
-                                    setModalVisible(false); // Fecha o modal principal se estiver aberto
-                                    setTagModalVisible(true); // Abre o modal de tags
-                                }}
-                            >
-                                <Text style={styles.tagText}>{selectedTag}</Text>
-                                <Icon name="arrow-drop-down" size={20} color="#fff" />
-                            </TouchableOpacity>
-                        </View>
-
-                        <View style={styles.modalButtons}>
-                            <TouchableOpacity
-                                style={styles.cancelButton}
-                                onPress={() => setModalVisible(false)}
-                            >
-                                <Text style={styles.cancelText}>Cancelar</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={styles.publishButton}
-                                onPress={handlePublish}
-                            >
-                                <Text style={styles.publishText}>Publicar</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
-            </Modal>
-            <Modal
-                animationType="slide"
-                transparent={true}
-                visible={tagModalVisible}
-                onRequestClose={() => {
-                    setTagModalVisible(false);
-                    setModalVisible(true);
-                }}
-            >
-                <View style={styles.modalContainer}>
-                    <View style={styles.modalContent}>
-                        <View style={styles.modalHeader}>
-                            <TouchableOpacity onPress={() => setTagModalVisible(false)}>
-                                <Icon name="arrow-back" size={25} color="#000" />
-                            </TouchableOpacity>
-                            <Text style={styles.modalTitle}>Escolha uma opção</Text>
-                        </View>
-
-                        <TouchableOpacity
-                            style={styles.optionButton}
-                            onPress={() => handleTagSelect('Blocos')}
-                        >
-                            <Text style={styles.optionText}>Blocos</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={styles.optionButton}
-                            onPress={() => handleTagSelect('Excluir')}
-                        >
-                            <Text style={styles.optionText}>Excluir</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={styles.optionButton}
-                            onPress={() => handleTagSelect('Cor')}
-                        >
-                            <Text style={styles.optionText}>Cor</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={styles.optionButton}
-                            onPress={() => handleTagSelect('Outros')}
-                        >
-                            <Text style={styles.optionText}>Outros</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </Modal>
-            <Modal
-                animationType="slide"
-                transparent={true}
-                visible={descriptionModalVisible}
-                onRequestClose={() => setDescriptionModalVisible(false)}
-            >
-                <View style={styles.modalContainer}>
-                    <View style={styles.modalContent}>
-                        <View style={styles.modalHeader}>
-                            <TouchableOpacity onPress={() => setDescriptionModalVisible(false)}>
-                                <Icon name="arrow-back" size={25} color="#000" />
-                            </TouchableOpacity>
-                            <Text style={styles.modalTitle}>Respostas</Text>
-                        </View>
-
-                        <Text style={styles.label}> <Text style={styles.asterisk}>*</Text>Escreva sua resposta</Text>
-                        <TextInput
-                            style={[styles.input, { height: 100 }]}
-                            multiline={true}
-                            value={selectedDescription}
-                            onChangeText={setSelectedDescription} // Atualiza o estado conforme o texto é digitado
-                        />
-
-                        {/* Botões de Cancelar e Publicar */}
-                        <View style={styles.modalButtons}>
-                            <TouchableOpacity
-                                style={styles.cancelButton}
-                                onPress={() => setDescriptionModalVisible(false)}
-                            >
-                                <Text style={styles.cancelText}>Cancelar</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={styles.publishButton}
-                                onPress={handlePublishComment} // Função para publicar o comentário
-                            >
-                                <Text style={styles.publishText}>Publicar</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
-            </Modal>
-
-
-
+            <TouchableOpacity onPress={() => toggleFilter('Minhas perguntas')}>
+                <Text style={[activeFilter === 'Minhas perguntas' ? styles.optionTextActive : styles.optionText, { color: isDarkMode ? 'white' : 'black' }]}>Minhas perguntas</Text>
+            </TouchableOpacity>
         </>
+    )}
+    <TouchableOpacity style={styles.iconFilterButton} onPress={toggleFilterVisibility}>
+        <Icon name="tune" size={24} color={isDarkMode ? 'white' : 'black'} />
+    </TouchableOpacity>
+</View>
+
+                {/* List of questions */}
+                <FlatList
+                    data={getFilteredQuestions()}
+                    keyExtractor={(item) => item.id}
+                    renderItem={renderQuestionItem}
+                    style={styles.questionList}
+                />
+
+                <TouchableOpacity
+                    style={styles.addButton}
+                    onPress={() => {
+                        setColorModalVisible(false);
+                        setModalVisible(true);
+                    }}
+                >
+                    <View style={styles.addIconContainer}>
+                        <Icon name="add" size={30} color="#fff" />
+                    </View>
+                </TouchableOpacity>
+
+                {/* Modal Principal */}
+                <Modal
+                    animationType="slide"
+                    transparent={true}
+                    visible={modalVisible}
+                    onRequestClose={() => setModalVisible(false)}
+                >
+                    <View style={styles.modalContainer}>
+                        <View style={styles.modalContent}>
+                            <View style={styles.modalHeader}>
+                                <TouchableOpacity onPress={() => setModalVisible(false)}>
+                                    <Icon name="arrow-back" size={25} color="#000" />
+                                </TouchableOpacity>
+                                <Text style={styles.modalTitle}>Faça uma pergunta</Text>
+                            </View>
+
+                            <Text style={styles.label}>
+                                <Text style={styles.asterisk}>*</Text> Pergunta
+                            </Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Digite sua pergunta"
+                                value={newQuestion}
+                                onChangeText={setNewQuestion}
+                            />
+                            <Text style={styles.label}>
+                                <Text style={styles.asterisk}>*</Text> Descrição
+                            </Text>
+                            <TextInput
+                                style={[styles.input, { height: 100, textAlignVertical: 'top' }]}
+                                multiline={false}
+                                placeholder="Digite a descrição"
+                                value={newDescription}
+                                onChangeText={setNewDescription}
+                            />
+                            <Text style={styles.label}>
+                                <Text style={styles.asterisk}>*</Text> Nome
+                            </Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Digite seu nome"
+                                value={userName}
+                                onChangeText={setUserName}
+                            />
+
+                            <Text style={styles.label}>Tag</Text>
+                            <View style={styles.tagContainer}>
+                                <TouchableOpacity
+                                    style={styles.tagButton}
+                                    onPress={() => {
+                                        setModalVisible(false);
+
+                                        setTagModalVisible(true);
+                                    }}
+                                >
+                                    <Text style={styles.tagText}>{selectedTag}</Text>
+                                    <Icon name="arrow-drop-down" size={20} color="#fff" />
+                                </TouchableOpacity>
+                            </View>
+
+                            <View style={styles.modalButtons}>
+                                <TouchableOpacity
+                                    style={styles.cancelButton}
+                                    onPress={() => setModalVisible(false)}
+                                >
+                                    <Text style={styles.cancelText}>Cancelar</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={styles.publishButton}
+                                    onPress={handlePublish}
+                                >
+                                    <Text style={styles.publishText}>Publicar</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </View>
+                </Modal>
+                <Modal
+                    animationType="slide"
+                    transparent={true}
+                    visible={tagModalVisible}
+                    onRequestClose={() => {
+                        setTagModalVisible(false);
+                        setModalVisible(true);
+                    }}
+                >
+                    <View style={styles.modalContainer}>
+                        <View style={styles.modalContent}>
+                            <View style={styles.modalHeader}>
+                                <TouchableOpacity onPress={() => setTagModalVisible(false)}>
+                                    <Icon name="arrow-back" size={25} color="#000" />
+                                </TouchableOpacity>
+                                <Text style={styles.modalTitle}>Escolha uma opção</Text>
+                            </View>
+
+                            <TouchableOpacity
+                                style={styles.optionButton}
+                                onPress={() => handleTagSelect('Blocos')}
+                            >
+                                <Text style={styles.optionText}>Blocos</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.optionButton}
+                                onPress={() => handleTagSelect('Excluir')}
+                            >
+                                <Text style={styles.optionText}>Excluir</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.optionButton}
+                                onPress={() => handleTagSelect('Cor')}
+                            >
+                                <Text style={styles.optionText}>Cor</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.optionButton}
+                                onPress={() => handleTagSelect('Outros')}
+                            >
+                                <Text style={styles.optionText}>Outros</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </Modal>
+                <Modal
+                    animationType="slide"
+                    transparent={true}
+                    visible={descriptionModalVisible}
+                    onRequestClose={() => setDescriptionModalVisible(false)}
+                >
+                    <View style={styles.modalContainer}>
+                        <View style={styles.modalContent}>
+                            <View style={styles.modalHeader}>
+                                <TouchableOpacity onPress={() => setDescriptionModalVisible(false)}>
+                                    <Icon name="arrow-back" size={25} color="#000" />
+                                </TouchableOpacity>
+                                <Text style={styles.modalTitle}>Respostas</Text>
+                            </View>
+
+                            <Text style={styles.label}> <Text style={styles.asterisk}>*</Text>Escreva sua resposta</Text>
+                            <TextInput
+                                style={[styles.input, { height: 100 }]}
+                                multiline={false}
+                                value={selectedDescription}
+                                onChangeText={setSelectedDescription}
+                            />
+                            <Text style={styles.label}> <Text style={styles.asterisk}>*</Text>Nome</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Digite seu nome"
+                                value={commentUserName}
+                                onChangeText={setCommentUserName}
+                            />
+
+                            {/* Botões de Cancelar e Publicar */}
+                            <View style={styles.modalButtons}>
+                                <TouchableOpacity
+                                    style={styles.cancelButton}
+                                    onPress={() => setDescriptionModalVisible(false)}
+                                >
+                                    <Text style={styles.cancelText}>Cancelar</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={styles.publishButton}
+                                    onPress={handlePublishComment} // Função para publicar o comentário
+                                >
+                                    <Text style={styles.publishText}>Publicar</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </View>
+                </Modal>
+
+
+
+            </>
+        </View>
     );
 };
 
@@ -470,7 +595,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingHorizontal: 10,
         paddingVertical: 15,
-        height: 190,
+        height: 210,
         top: -49,
         paddingTop: StatusBar.currentHeight || 20,
     },
@@ -486,10 +611,9 @@ const styles = StyleSheet.create({
         top: 10,
     },
     title1: {
-        fontSize: 28,
+        fontSize: 27,
         color: 'white',
         fontWeight: 'bold',
-        right: 45,
         top: 10,
     },
     searchContainer: {
@@ -583,7 +707,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: '#4682B4',
         paddingVertical: 5,
-        paddingHorizontal: 10,
+        paddingHorizontal: 15,
         borderRadius: 20,
     },
     tagButtonText: {
@@ -729,9 +853,10 @@ const styles = StyleSheet.create({
     commentInfo: {
         flexDirection: 'row',
         alignItems: 'center',
+        
     },
     commentCount: {
-        marginLeft: 7,
+        marginLeft: 8,
         fontSize: 13,
         color: '#666',
 
@@ -754,7 +879,7 @@ const styles = StyleSheet.create({
         color: '#000',
     },
     tagDisplayContainer: {
-        width: '26%',
+        width: '30%',
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#4682B4',
@@ -765,6 +890,7 @@ const styles = StyleSheet.create({
     tagDisplayText: {
         color: '#fff',
         marginRight: 5,
+        
 
     },
 

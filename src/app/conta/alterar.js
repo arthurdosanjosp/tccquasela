@@ -5,8 +5,10 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../config/firebaseConfig'; 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SwitchAccountScreen = () => {
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const router = useRouter();
   const [userData, setUserData] = useState({
     name: '',
@@ -14,6 +16,17 @@ const SwitchAccountScreen = () => {
   });
   const [profileBgColor, setProfileBgColor] = useState('#4B6D9B');
 
+
+  useEffect(() => {
+    // Carrega a preferência do modo escuro
+    const loadDarkMode = async () => {
+        const darkModeSetting = await AsyncStorage.getItem('isDarkMode');
+        if (darkModeSetting !== null) {
+            setIsDarkMode(JSON.parse(darkModeSetting));
+        }
+    };
+    loadDarkMode();
+}, []);
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -55,41 +68,42 @@ const SwitchAccountScreen = () => {
       source={require('../img/gradient (6).jpeg')} // Substitua pelo caminho correto da sua imagem
       style={styles.backgroundImage}
     >
-      <View style={styles.container}>
-        <View style={styles.card}>
-          {/* Header */}
-          <View style={styles.header}>
+    <View style={styles.container}>
+    <View style={[styles.card, { backgroundColor: isDarkMode ? '#333' : 'white' }]}>
+        {/* Header */}
+        <View style={styles.header}>
             <TouchableOpacity onPress={() => router.back()}>
-              <Ionicons name="arrow-back" size={24} color="gray" />
+                <Ionicons name="arrow-back" size={24} color={isDarkMode ? 'white' : 'gray'} />
             </TouchableOpacity>
-            <Text style={styles.headerText}>Alternar Conta</Text>
-          </View>
+            <Text style={[styles.headerText, { color: isDarkMode ? 'white' : 'lihtgray' }]}>Alternar Conta</Text>
+        </View>
 
-          <Text style={styles.subheader}>Selecionar ou adicionar conta</Text>
+        <Text style={[styles.subheader, { color: isDarkMode ? 'lightgray' : 'black' }]}>Selecionar ou adicionar conta</Text>
 
-          {/* Account Item */}
-          <TouchableOpacity style={[styles.accountItem, styles.accountItemBorder]}>
+        {/* Account Item */}
+        <TouchableOpacity style={[styles.accountItem, styles.accountItemBorder]}>
             <View style={[styles.avatar, { backgroundColor: profileBgColor }]}>
-              <Text style={styles.avatarText}>{getInitial()}</Text>
+                <Text style={[styles.avatarText]}>{getInitial()}</Text>
             </View>
             <View>
-              <Text style={styles.accountName}>{userData.name}</Text>
-              <Text style={styles.accountEmail}>{userData.email}</Text>
+                <Text style={[styles.accountName, { color: isDarkMode ? 'white' : 'black' }]}>{userData.name}</Text>
+                <Text style={[styles.accountEmail, { }]}>{userData.email}</Text>
             </View>
-          </TouchableOpacity>
+        </TouchableOpacity>
 
-          {/* Add Account */}
-          <TouchableOpacity style={[styles.addAccountItem, styles.addAccountItemBorder]}>
-            <Icon name="account-circle" size={75} color="gray" />
-            <Text style={styles.addAccountText}>Adicionar conta</Text>
-          </TouchableOpacity>
+        {/* Add Account */}
+        <TouchableOpacity style={[styles.addAccountItem, styles.addAccountItemBorder]} onPress={() => router.push(handleLogout)}>
+            <Icon name="account-circle" size={75} color={isDarkMode ? 'white' : 'gray'} />
+            <Text style={[styles.addAccountText, { color: isDarkMode ? 'white' : 'black' }]}>Alternar conta</Text>
+        </TouchableOpacity>
 
-          {/* Logout */}
-          <TouchableOpacity style={styles.logoutButton} onPress={() => router.push(handleLogout)}>
-            <Text style={styles.logoutText}>Sair</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+        {/* Logout */}
+        <TouchableOpacity style={styles.logoutButton} onPress={() => router.push(handleLogout)}>
+            <Text style={[styles.logoutText]}>Sair</Text>
+        </TouchableOpacity>
+    </View>
+</View>
+
     </ImageBackground>
   );
 };
